@@ -100,7 +100,7 @@ function FatalForError({ error }: { error: ApiError }) {
     );
   }
   if (error.code === "no_api") {
-    return <FatalScreen emoji="🔌" title="Сервер не настроен" text="В сборке не задан адрес сервера бота (переменная VITE_API_BASE в настройках репозитория)." />;
+    return <FatalScreen emoji="🔌" title="Сервер не настроен" text="Адрес сервера бота не задан или не входит в список разрешённых (переменные PROD_API_BASE и TEST_API_BASE в настройках репозитория SBIMiniapp)." />;
   }
   if (error.code === "network") {
     return <FatalScreen emoji="📡" title="Сервер недоступен" text="Не удалось связаться с сервером бота. Проверьте интернет и попробуйте ещё раз." action={<button className="btn" onClick={() => window.location.reload()}>Обновить</button>} />;

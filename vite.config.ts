@@ -5,8 +5,9 @@ import react from "@vitejs/plugin-react";
 declare const process: { env: Record<string, string | undefined> };
 
 // Интерфейс размещается на GitHub Pages, данные берёт из API бота (другой домен):
-//   VITE_BASE     — путь сайта: /SBIMiniapp/ (продакшн) или /SBIMiniapp/test/ (тест);
-//   VITE_API_BASE — адрес сервера бота, например https://is-torus.online.
+//   VITE_BASE        — путь сайта: /SBIMiniapp/;
+//   VITE_API_BASE    — сервер бота по умолчанию, например https://is-torus.online;
+//   VITE_API_SERVERS — разрешённые серверы для ?api=… в ссылке бота (через запятую).
 // В dev-режиме API проксируется на локальный бот (WEBAPP_PORT=8081).
 export default defineConfig({
   plugins: [react()],

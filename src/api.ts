@@ -1,10 +1,27 @@
 import { initData } from "./telegram";
 
+const cleanUrl = (url: unknown): string => String(url || "").trim().replace(/\/+$/, "");
+
+/** Сервер по умолчанию (VITE_API_BASE) и все разрешённые серверы (VITE_API_SERVERS). */
+const DEFAULT_API = cleanUrl(import.meta.env.VITE_API_BASE);
+const ALLOWED_APIS = new Set(
+  [DEFAULT_API, ...String(import.meta.env.VITE_API_SERVERS || "").split(/[\s,]+/).map(cleanUrl)].filter(Boolean),
+);
+
 /**
- * Адрес сервера бота (задаётся при сборке: VITE_API_BASE). Пусто в dev-режиме —
- * запросы идут на тот же адрес и проксируются Vite на локальный бот.
+ * Адрес сервера бота. Одна сборка обслуживает и тестового, и продакшн-бота:
+ * бот передаёт свой сервер в ссылке (?api=https://…), а приложение принимает
+ * только адреса из списка, заданного при сборке, — initData не уйдёт на чужой
+ * сервер. Без параметра — VITE_API_BASE. Пусто в dev-режиме: запросы идут на
+ * тот же адрес и проксируются Vite на локальный бот.
  */
-export const API_BASE: string = String(import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
+function resolveApiBase(): string {
+  const requested = new URLSearchParams(window.location.search).get("api");
+  if (requested === null) return DEFAULT_API;
+  return ALLOWED_APIS.has(cleanUrl(requested)) ? cleanUrl(requested) : "";
+}
+
+export const API_BASE: string = resolveApiBase();
 
 /** Ошибка API с кодом (unauthorized, forbidden, openai_login_required, …). */
 export class ApiError extends Error {
@@ -30,7 +47,7 @@ const FATAL = new Set(["unauthorized", "expired", "forbidden", "openai_login_req
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
   if (!API_BASE && import.meta.env.PROD) {
-    const error = new ApiError("Не задан адрес сервера бота (VITE_API_BASE).", 0, "no_api");
+    const error = new ApiError("Адрес сервера бота не задан или не разрешён в сборке.", 0, "no_api");
     authListeners.forEach((l) => l(error));
     throw error;
   }

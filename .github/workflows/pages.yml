@@ -1,21 +1,18 @@
 # Сборка и публикация Mini App на GitHub Pages.
 #
-#   ветка main → https://zave001.github.io/SBIMiniapp/       (продакшн, API — PROD_API_BASE)
-#   ветка test → https://zave001.github.io/SBIMiniapp/test/  (тест,     API — TEST_API_BASE)
+#   ветка main → https://zave001.github.io/SBIMiniapp/
 #
-# Pages хранит один сайт на репозиторий, поэтому при любом пуше собираются обе
-# ветки и публикуются вместе: изменения в test не попадают в продакшн, пока их
-# не влили в main.
-#
-# Переменные репозитория (Settings → Secrets and variables → Actions → Variables):
-#   TEST_API_BASE — адрес тестового сервера бота (по умолчанию https://is-torus.online);
-#   PROD_API_BASE — адрес продакшн-сервера бота (пока не задан — продакшн-сборка покажет
-#                   «Сервер не настроен»).
+# Одна сборка обслуживает и тестового, и продакшн-бота: каждый бот передаёт
+# адрес своего сервера в ссылке (?api=https://…). Приложение принимает только
+# адреса из VITE_API_SERVERS — их задают переменные репозитория
+# (Settings → Secrets and variables → Actions → Variables):
+#   PROD_API_BASE — сервер продакшн-бота (он же адрес по умолчанию, если ?api= нет);
+#   TEST_API_BASE — сервер тестового бота (по умолчанию https://is-torus.online).
 name: Pages
 
 on:
   push:
-    branches: [main, test]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -29,68 +26,29 @@ concurrency:
 
 jobs:
   build:
-    name: Сборка (main + test)
+    name: Сборка
     runs-on: ubuntu-latest
     steps:
-      - name: Код ветки main
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          path: prod
-
-      - name: Есть ли ветка test
-        id: branches
-        run: |
-          if git ls-remote --exit-code --heads "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" test >/dev/null; then
-            echo "test=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "test=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Код ветки test
-        if: steps.branches.outputs.test == 'true'
-        uses: actions/checkout@v4
-        with:
-          ref: test
-          path: test
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
-      - name: Сборка продакшна
-        working-directory: prod
+      - name: Сборка
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
           VITE_API_BASE: ${{ vars.PROD_API_BASE }}
+          VITE_API_SERVERS: ${{ vars.PROD_API_BASE }},${{ vars.TEST_API_BASE || 'https://is-torus.online' }}
         run: |
           npm ci --no-audit --no-fund
           npm run build
-
-      - name: Сборка теста
-        if: steps.branches.outputs.test == 'true'
-        working-directory: test
-        env:
-          VITE_BASE: /${{ github.event.repository.name }}/test/
-          VITE_API_BASE: ${{ vars.TEST_API_BASE || 'https://is-torus.online' }}
-        run: |
-          npm ci --no-audit --no-fund
-          npm run build
-
-      - name: Сайт
-        run: |
-          mkdir -p site
-          cp -r prod/dist/. site/
-          if [ -d test/dist ]; then
-            mkdir -p site/test
-            cp -r test/dist/. site/test/
-          fi
-          touch site/.nojekyll
-          find site -maxdepth 2 -name index.html
+          touch dist/.nojekyll
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: dist
 
   deploy:
     name: Публикация

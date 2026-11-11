@@ -7,25 +7,23 @@
 на его сервере. Пользователь определяется по `initData`, подписанному Telegram:
 сервер проверяет подпись, белый список и вход в OpenAI.
 
-| Ветка | Адрес | Сервер бота (API) |
-|---|---|---|
-| `main` | https://zave001.github.io/SBIMiniapp/ | `PROD_API_BASE` |
-| `test` | https://zave001.github.io/SBIMiniapp/test/ | `TEST_API_BASE` (по умолчанию https://is-torus.online) |
+Адрес: https://zave001.github.io/SBIMiniapp/ — сборка ветки `main`. Её открывают и
+тестовый, и продакшн-бот: каждый бот передаёт адрес своего сервера в ссылке
+(`?api=https://…`), а приложение принимает только адреса из списка, заданного при
+сборке. Без параметра используется `PROD_API_BASE`.
 
-При пуше в любую из веток workflow [`pages.yml`](.github/workflows/pages.yml) собирает
-**обе** и публикует вместе: изменения в `test` не попадают в продакшн, пока их не влили
-в `main`.
+Workflow [`pages.yml`](.github/workflows/pages.yml) собирает и публикует сайт при
+каждом пуше в `main`.
 
 ## Настройка (один раз)
 
 1. **Settings → Pages → Build and deployment → Source: GitHub Actions.**
 2. **Settings → Secrets and variables → Actions → Variables:**
-   - `TEST_API_BASE` = `https://is-torus.online`
+   - `TEST_API_BASE` = `https://is-torus.online` (это значение по умолчанию)
    - `PROD_API_BASE` = `https://<домен продакшн-сервера>` (когда появится)
-3. Ветка `test`: `git switch -c test && git push -u origin test`.
-4. В боте (секреты репозитория SBIBot):
-   - `TEST_NOTES_BOT_ENV`: `WEBAPP_URL=https://zave001.github.io/SBIMiniapp/test`
-   - `PROD_NOTES_BOT_ENV`: `WEBAPP_URL=https://zave001.github.io/SBIMiniapp`
+3. В боте (секреты репозитория SBIBot) у обоих ботов один адрес:
+   `WEBAPP_URL=https://zave001.github.io/SBIMiniapp`. Свой сервер бот подставляет
+   в `?api=` сам — из `WEBAPP_DOMAIN` (или `WEBAPP_API_URL`).
 
    Бот ставит этот адрес в кнопку меню «📱 Приложение» и разрешает запросы к API
    с `https://zave001.github.io` (CORS).
@@ -39,10 +37,10 @@ npm run build        # проверка типов + сборка в dist/
 ```
 
 Внутри Telegram открыть dev-сервер нельзя (нужен HTTPS); для проверки в Telegram
-пушьте в `test`.
+пушьте в `main` — изменения сразу увидят оба бота.
 
-Переменные сборки: `VITE_BASE` — путь сайта (`/SBIMiniapp/` или `/SBIMiniapp/test/`),
-`VITE_API_BASE` — адрес сервера бота.
+Переменные сборки: `VITE_BASE` — путь сайта (`/SBIMiniapp/`), `VITE_API_BASE` — сервер
+бота по умолчанию, `VITE_API_SERVERS` — разрешённые серверы для `?api=` (через запятую).
 
 ## Совместимость с ботом
 
