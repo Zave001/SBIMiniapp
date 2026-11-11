@@ -99,6 +99,12 @@ function FatalForError({ error }: { error: ApiError }) {
       />
     );
   }
+  if (error.code === "no_api") {
+    return <FatalScreen emoji="🔌" title="Сервер не настроен" text="В сборке не задан адрес сервера бота (переменная VITE_API_BASE в настройках репозитория)." />;
+  }
+  if (error.code === "network") {
+    return <FatalScreen emoji="📡" title="Сервер недоступен" text="Не удалось связаться с сервером бота. Проверьте интернет и попробуйте ещё раз." action={<button className="btn" onClick={() => window.location.reload()}>Обновить</button>} />;
+  }
   if (error.code === "expired") {
     return <FatalScreen emoji="⏳" title="Сессия устарела" text="Закройте и откройте приложение заново." />;
   }

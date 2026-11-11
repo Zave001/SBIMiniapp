@@ -1,5 +1,11 @@
 import { initData } from "./telegram";
 
+/**
+ * Адрес сервера бота (задаётся при сборке: VITE_API_BASE). Пусто в dev-режиме —
+ * запросы идут на тот же адрес и проксируются Vite на локальный бот.
+ */
+export const API_BASE: string = String(import.meta.env.VITE_API_BASE || "").replace(/\/+$/, "");
+
 /** Ошибка API с кодом (unauthorized, forbidden, openai_login_required, …). */
 export class ApiError extends Error {
   constructor(
@@ -20,12 +26,17 @@ export function onAuthError(listener: Listener): () => void {
   return () => authListeners.delete(listener);
 }
 
-const FATAL = new Set(["unauthorized", "expired", "forbidden", "openai_login_required"]);
+const FATAL = new Set(["unauthorized", "expired", "forbidden", "openai_login_required", "no_api"]);
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+  if (!API_BASE && import.meta.env.PROD) {
+    const error = new ApiError("Не задан адрес сервера бота (VITE_API_BASE).", 0, "no_api");
+    authListeners.forEach((l) => l(error));
+    throw error;
+  }
   let response: Response;
   try {
-    response = await fetch(`/api/app${path}`, {
+    response = await fetch(`${API_BASE}/api/app${path}`, {
       method: options.method ?? "GET",
       headers: {
         Authorization: `tma ${initData()}`,

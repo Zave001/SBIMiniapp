@@ -1,0 +1,104 @@
+# Сборка и публикация Mini App на GitHub Pages.
+#
+#   ветка main → https://zave001.github.io/SBIMiniapp/       (продакшн, API — PROD_API_BASE)
+#   ветка test → https://zave001.github.io/SBIMiniapp/test/  (тест,     API — TEST_API_BASE)
+#
+# Pages хранит один сайт на репозиторий, поэтому при любом пуше собираются обе
+# ветки и публикуются вместе: изменения в test не попадают в продакшн, пока их
+# не влили в main.
+#
+# Переменные репозитория (Settings → Secrets and variables → Actions → Variables):
+#   TEST_API_BASE — адрес тестового сервера бота (по умолчанию https://is-torus.online);
+#   PROD_API_BASE — адрес продакшн-сервера бота (пока не задан — продакшн-сборка покажет
+#                   «Сервер не настроен»).
+name: Pages
+
+on:
+  push:
+    branches: [main, test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Сборка (main + test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Код ветки main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: prod
+
+      - name: Есть ли ветка test
+        id: branches
+        run: |
+          if git ls-remote --exit-code --heads "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git" test >/dev/null; then
+            echo "test=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "test=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Код ветки test
+        if: steps.branches.outputs.test == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: test
+          path: test
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Сборка продакшна
+        working-directory: prod
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_API_BASE: ${{ vars.PROD_API_BASE }}
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Сборка теста
+        if: steps.branches.outputs.test == 'true'
+        working-directory: test
+        env:
+          VITE_BASE: /${{ github.event.repository.name }}/test/
+          VITE_API_BASE: ${{ vars.TEST_API_BASE || 'https://is-torus.online' }}
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Сайт
+        run: |
+          mkdir -p site
+          cp -r prod/dist/. site/
+          if [ -d test/dist ]; then
+            mkdir -p site/test
+            cp -r test/dist/. site/test/
+          fi
+          touch site/.nojekyll
+          find site -maxdepth 2 -name index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    name: Публикация
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
