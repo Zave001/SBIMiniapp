@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { haptic } from "../telegram";
 import { navigate } from "../router";
-import { fmtDay, fmtTime } from "../format";
+import { fmtDay, fmtTime, mskOffset } from "../format";
 import type { Deal, Task } from "../types";
 import { IconChevron, IconPin, IconRepeat, IconStar } from "./Icons";
 
@@ -184,7 +184,8 @@ export function DealRow({ deal, compact = false }: { deal: Deal; compact?: boole
           {deal.title}
         </span>
         <span className="hint small">
-          {deal.start ? `${fmtTime(deal.start)} · ` : ""}
+          {/* Пояс пишем один раз: в «when» он уже есть, если там названо время. */}
+          {deal.start ? `${fmtTime(deal.start, !deal.when.includes("мск"))} · ` : ""}
           {deal.when}
         </span>
         {!compact && (
@@ -203,6 +204,64 @@ export function DealRow({ deal, compact = false }: { deal: Deal; compact?: boole
             )}
             {cancelled && <Chip tone="danger">отменено</Chip>}
           </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Время в узкой колонке: «18:01» и под ним мелко «(+4 мск)». */
+export function StackedTime({ iso, fallback = "—" }: { iso: string | null | undefined; fallback?: string }) {
+  const time = fmtTime(iso, false);
+  if (!time) return <>{fallback}</>;
+  const zone = mskOffset(iso);
+  return (
+    <>
+      {time}
+      {zone && <small className="tz">({zone})</small>}
+    </>
+  );
+}
+
+/**
+ * Дата и время — двумя отдельными полями: на многих телефонах общее поле
+ * «datetime-local» открывает только календарь, без выбора времени.
+ * Значение — «YYYY-MM-DDTHH:MM» (пусто — не задано) в поясе из настроек бота.
+ */
+export function DateTimeField({ label, value, onChange, defaultTime = "09:00", zone }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  /** Время, которое подставится при выборе даты, если времени ещё нет. */
+  defaultTime?: string;
+  /** Подпись пояса, например «+4 мск». */
+  zone?: string;
+}) {
+  const date = value.slice(0, 10);
+  const time = value.length >= 16 ? value.slice(11, 16) : "";
+  return (
+    <div className="field">
+      <span>{label}{zone ? ` (${zone})` : ""}</span>
+      <div className="dt-row">
+        <input
+          type="date"
+          className="dt-date"
+          aria-label={`${label}: дата`}
+          value={date}
+          onChange={(e) => onChange(e.target.value ? `${e.target.value}T${time || defaultTime}` : "")}
+        />
+        <input
+          type="time"
+          className="dt-time"
+          aria-label={`${label}: время`}
+          value={time}
+          disabled={!date}
+          onChange={(e) => date && e.target.value && onChange(`${date}T${e.target.value}`)}
+        />
+        {value && (
+          <button type="button" className="dt-clear" aria-label="Очистить" onClick={() => onChange("")}>
+            ✕
+          </button>
         )}
       </div>
     </div>

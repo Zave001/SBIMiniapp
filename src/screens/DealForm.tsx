@@ -5,7 +5,7 @@ import { useApi, useBackButton } from "../hooks";
 import { navigate } from "../router";
 import { alertMessage, haptic } from "../telegram";
 import type { DealFull, Me } from "../types";
-import { Card, Chip, Screen, Section, Spinner, Toggle } from "../components/ui";
+import { Card, Chip, DateTimeField, Screen, Section, Spinner, Toggle } from "../components/ui";
 
 interface FormState {
   title: string;
@@ -115,19 +115,14 @@ export function DealForm({ id, me }: { id?: number; me: Me }) {
             {me.event_types.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
-        <div className="field-row">
-          <label className="field">
-            <span>Начало</span>
-            <input type="datetime-local" value={form.start} onChange={(e) => set("start", e.target.value)} />
-          </label>
-          <label className="field narrow">
-            <span>Длительность</span>
-            <select value={form.duration_min} onChange={(e) => set("duration_min", Number(e.target.value))} disabled={!form.start}>
-              {DURATIONS.map((d) => <option key={d} value={d}>{d} мин</option>)}
-            </select>
-          </label>
-        </div>
-        <p className="hint small">Время — в вашем часовом поясе ({me.timezone}).</p>
+        <DateTimeField label="Начало" value={form.start} onChange={(v) => set("start", v)} zone={me.msk_offset} />
+        <label className="field">
+          <span>Длительность</span>
+          <select value={form.duration_min} onChange={(e) => set("duration_min", Number(e.target.value))} disabled={!form.start}>
+            {DURATIONS.map((d) => <option key={d} value={d}>{d} мин</option>)}
+          </select>
+        </label>
+        <p className="hint small">Время — в поясе из настроек бота: {me.timezone}{me.msk_offset ? ` (${me.msk_offset})` : ""}.</p>
       </Card>
 
       <Card>

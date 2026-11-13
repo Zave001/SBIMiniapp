@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useApi, useDebounced } from "../hooks";
 import { navigate } from "../router";
-import type { Deal } from "../types";
+import { todayIn } from "../format";
+import type { Deal, Me } from "../types";
 import { IconPlus, IconSearch } from "../components/Icons";
 import { DealRow, Empty, ErrorBox, Screen, Segmented, Spinner } from "../components/ui";
 
@@ -14,7 +15,7 @@ const PERIODS: { value: PeriodFilter; label: string }[] = [
   { value: "all", label: "Все" },
 ];
 
-export function Deals() {
+export function Deals({ me }: { me: Me }) {
   const [period, setPeriod] = useState<PeriodFilter>("upcoming");
   const [view, setView] = useState<View>("list");
   const [query, setQuery] = useState("");
@@ -55,7 +56,7 @@ export function Deals() {
           action={<button className="btn" onClick={() => navigate("/deals/new")}>Создать дело</button>}
         />
       )}
-      {data && events.length > 0 && (view === "list" ? <DealList events={events} /> : <WeekView events={events} />)}
+      {data && events.length > 0 && (view === "list" ? <DealList events={events} /> : <WeekView events={events} timezone={me.timezone} />)}
     </Screen>
   );
 }
@@ -72,19 +73,23 @@ function DealList({ events }: { events: Deal[] }) {
 
 const WEEKDAY_NAMES = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"];
 
-/** Неделя: 7 дней от сегодняшнего понедельника (по датам из ISO в поясе пользователя). */
-function WeekView({ events }: { events: Deal[] }) {
+/**
+ * Неделя: 7 дней от понедельника. «Сегодня» — в поясе из настроек бота, а не
+ * телефона: даты дел приходят в этом поясе, иначе дни разъедутся.
+ */
+function WeekView({ events, timezone }: { events: Deal[]; timezone: string }) {
   const [offset, setOffset] = useState(0);
+  const todayIso = todayIn(timezone);
   const days = useMemo(() => {
-    const today = new Date();
-    const monday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    const [y, m, d] = todayIso.split("-").map(Number);
+    const monday = new Date(Date.UTC(y, m - 1, d));
     monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7) + offset * 7);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setUTCDate(monday.getUTCDate() + i);
       return d.toISOString().slice(0, 10);
     });
-  }, [offset]);
+  }, [offset, todayIso]);
   const byDay = useMemo(() => {
     const map: Record<string, Deal[]> = {};
     for (const e of events) {
@@ -94,7 +99,6 @@ function WeekView({ events }: { events: Deal[] }) {
     Object.values(map).forEach((list) => list.sort((a, b) => (a.start ?? "").localeCompare(b.start ?? "")));
     return map;
   }, [events]);
-  const todayIso = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="week">

@@ -29,7 +29,7 @@ export function Profile({ me }: { me: Me }) {
         <div>
           <h2>{name}</h2>
           <p className="hint small">{me.user.username ? `@${me.user.username} · ` : ""}ID {me.user.id}</p>
-          <p className="hint small">🌍 {me.timezone}</p>
+          <p className="hint small">🌍 {me.timezone}{me.msk_offset ? ` (${me.msk_offset})` : ""}</p>
         </div>
       </Card>
 

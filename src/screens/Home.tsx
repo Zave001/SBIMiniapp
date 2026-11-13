@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { patch } from "../api";
-import { fmtDate, fmtTime, greeting, percent, plural } from "../format";
+import { fmtDate, greeting, percent, plural } from "../format";
 import { useApi } from "../hooks";
 import { navigate } from "../router";
 import { closeApp, haptic } from "../telegram";
@@ -19,7 +19,7 @@ import {
   IconSpark,
   IconStar,
 } from "../components/Icons";
-import { Card, DealRow, Empty, ErrorBox, Section, Spinner } from "../components/ui";
+import { Card, DealRow, Empty, ErrorBox, Section, Spinner, StackedTime } from "../components/ui";
 
 const SLIDES = ["Ближайшие", "Важное", "Задачи", "Напоминания", "Статистика"] as const;
 
@@ -184,7 +184,7 @@ function SlideUpcoming({ data }: { data: HomeData }) {
       ) : (
         items.map((d) => (
           <button key={d.id} className="slide-item" onClick={() => navigate(`/deals/${d.id}`)}>
-            <span className="slide-time">{d.period === "now" ? "сейчас" : fmtTime(d.start)}</span>
+            <span className="slide-time">{d.period === "now" ? "сейчас" : <StackedTime iso={d.start} />}</span>
             <span className="slide-text">
               {d.important && "❗ "}
               {d.title}
@@ -207,7 +207,7 @@ function SlideImportant({ data, onToggle }: { data: HomeData; onToggle: (t: Task
         <>
           {deals.slice(0, 3).map((d) => (
             <button key={d.id} className="slide-item" onClick={() => navigate(`/deals/${d.id}`)}>
-              <span className="slide-time">{fmtTime(d.start) || "—"}</span>
+              <span className="slide-time"><StackedTime iso={d.start} /></span>
               <span className="slide-text">{d.title}<small>{d.when}</small></span>
             </button>
           ))}
@@ -263,7 +263,7 @@ function SlideReminders({ data }: { data: HomeData }) {
             className="slide-item"
             onClick={() => navigate(r.kind === "task" ? `/tasks/${r.task_id}` : `/deals/${r.event_id}`)}
           >
-            <span className="slide-time">{fmtTime(r.at)}</span>
+            <span className="slide-time"><StackedTime iso={r.at} /></span>
             <span className="slide-text">
               {r.title}
               <small>{fmtDate(r.at, false)} · {r.label}</small>

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { ApiError, del, patch, post } from "../api";
-import { fmtDate, toInputValue } from "../format";
+import { fmtDate, mskOffset, toInputValue } from "../format";
 import { useApi, useBackButton } from "../hooks";
 import { goBack, navigate } from "../router";
 import { alertMessage, confirmAction, haptic } from "../telegram";
 import type { Deal, Task } from "../types";
 import { IconStar, IconTrash } from "../components/Icons";
-import { Card, Empty, ErrorBox, ListRow, Screen, Section, Segmented, Spinner, TaskRow } from "../components/ui";
+import { Card, DateTimeField, Empty, ErrorBox, ListRow, Screen, Section, Segmented, Spinner, TaskRow } from "../components/ui";
 import { AddLine } from "./DealDetail";
 
 type Filter = "open" | "today" | "overdue" | "week" | "important" | "nodue" | "done";
@@ -104,14 +104,13 @@ export function TaskDetail({ id }: { id: number }) {
 
       <Card>
         <ListRow title={`«${event.title}»`} subtitle={event.when} onClick={() => navigate(`/deals/${event.id}`)} />
-        <label className="field">
-          <span>Срок</span>
-          <input
-            type="datetime-local"
-            value={toInputValue(task.due)}
-            onChange={(e) => update({ due: e.target.value || null })}
-          />
-        </label>
+        <DateTimeField
+          label="Срок"
+          value={toInputValue(task.due)}
+          onChange={(value) => update({ due: value || null })}
+          defaultTime="23:59"
+          zone={mskOffset(task.due) || undefined}
+        />
         <p className="hint small">Напомню о сроке за сутки и за час.</p>
         <AssigneeField value={task.assignee ?? ""} onSave={(assignee) => update({ assignee })} />
       </Card>

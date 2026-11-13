@@ -65,7 +65,10 @@ export interface DealFull extends Deal {
 
 export interface Me {
   user: { id: number; first_name?: string; last_name?: string; username?: string; photo_url?: string };
+  /** Пояс из настроек бота (IANA). */
   timezone: string;
+  /** Разница с Москвой: «+4 мск», «мск». */
+  msk_offset?: string;
   openai_connected: boolean;
   google_available: boolean;
   google_connected: boolean;
@@ -131,6 +134,7 @@ export interface UserSettings {
   user_id: number;
   timezone: string;
   timezone_set: boolean;
+  msk_offset?: string;
   digest_enabled: boolean;
   digest_time: string;
   followup_enabled: boolean;

@@ -61,7 +61,7 @@ export function App() {
 function renderRoute(route: string, me: Me) {
   let p: Record<string, string> | null;
   if (route === "/") return <Home me={me} />;
-  if (match(route, "/deals")) return <Deals />;
+  if (match(route, "/deals")) return <Deals me={me} />;
   if (match(route, "/deals/new")) return <DealForm me={me} />;
   if ((p = match(route, "/deals/:id/edit"))) return <DealForm key={p.id} id={Number(p.id)} me={me} />;
   if ((p = match(route, "/deals/:id"))) return <DealDetail key={p.id} id={Number(p.id)} me={me} />;
